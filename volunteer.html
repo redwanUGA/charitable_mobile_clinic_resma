@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Volunteer Portal — Charitable Mobile Clinic</title>
+<meta name="robots" content="noindex">
+<style>
+  :root{--teal:#028090;--deep:#0B4F5E;--mint:#E6F4F1;--ink:#1F2A2E;--muted:#5C6B70;--acc:#F28C28}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Calibri,"Segoe UI",Arial,sans-serif;color:var(--ink);background:var(--mint);line-height:1.5}
+  header{background:var(--deep);color:#fff;padding:14px 20px}
+  .wrap{max-width:760px;margin:0 auto}
+  nav{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
+  nav .brand{font-family:Cambria,Georgia,serif;font-size:20px;font-weight:700}
+  nav a{color:#CFE9E4;text-decoration:none;font-size:14px}
+  main{padding:32px 20px}
+  h1{font-family:Cambria,Georgia,serif;color:var(--deep);font-size:28px;margin:0 0 6px}
+  h2{font-family:Cambria,Georgia,serif;color:var(--deep);font-size:20px;margin:0 0 10px}
+  .card{background:#fff;border-radius:10px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:18px}
+  label{display:block;font-size:14px;color:var(--muted);margin:10px 0 4px}
+  input,select,textarea{width:100%;padding:10px;border:1px solid #c9d8d5;border-radius:8px;font:inherit;font-size:15px}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:560px){.row{grid-template-columns:1fr}}
+  .btn{display:inline-block;background:var(--acc);color:#fff;padding:10px 18px;border-radius:8px;border:0;font-weight:700;font:inherit;cursor:pointer;margin:14px 8px 0 0}
+  .btn.alt{background:var(--teal)}
+  .btn.ghost{background:#fff;color:var(--deep);border:1px solid #c9d8d5}
+  .msg{padding:10px 12px;border-radius:8px;font-size:14px;margin-top:12px;display:none}
+  .msg.ok{display:block;background:#e3f6ea;color:#155c31}
+  .msg.err{display:block;background:#fdeaea;color:#8a1c1c}
+  .small{font-size:13px;color:var(--muted)}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:8px;text-align:left;border-bottom:1px solid #e3ecea}
+  .chk{display:flex;gap:10px;align-items:flex-start;margin-top:10px}
+  .chk input{width:auto;margin-top:4px}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header><div class="wrap"><nav>
+  <div class="brand">Charitable Mobile Clinic</div>
+  <div><a href="index.html">Home</a> &nbsp; <a href="training.html">Training program</a> &nbsp; <a href="admin.html" id="adminLink" hidden>Admin</a> &nbsp; <a href="#" id="signout" hidden>Sign out</a></div>
+</nav></div></header>
+
+<main><div class="wrap">
+  <h1>Volunteer portal</h1>
+  <p class="small">Create an account to register as a volunteer and record your training completions. Volunteer information only — no patient information is ever entered here.</p>
+
+  <!-- AUTH -->
+  <section id="auth" class="card">
+    <h2 id="authTitle">Sign in or create an account</h2>
+    <label>Email</label><input id="email" type="email" autocomplete="email" placeholder="you@example.com">
+    <label>Password</label><input id="password" type="password" autocomplete="current-password" placeholder="At least 8 characters">
+    <button class="btn" id="btnSignIn">Sign in</button>
+    <button class="btn alt" id="btnSignUp">Create account</button>
+    <button class="btn ghost" id="btnMagic">Email me a sign-in link</button>
+    <div class="msg" id="authMsg"></div>
+    <p class="small">New accounts receive a confirmation email; click the link, then return here to sign in.</p>
+  </section>
+
+  <!-- PROFILE -->
+  <section id="app" hidden>
+    <div class="card">
+      <h2>Your volunteer profile</h2>
+      <div class="row">
+        <div><label>Full name</label><input id="full_name"></div>
+        <div><label>Phone</label><input id="phone" type="tel"></div>
+      </div>
+      <div class="row">
+        <div><label>Volunteer role</label>
+          <select id="role">
+            <option value="">Select…</option>
+            <option>Licensed clinician (MD/DO, CNM, NP, RN)</option>
+            <option>Medical assistant (under supervision)</option>
+            <option>Intake and navigation</option>
+            <option>Health educator</option>
+            <option>Community health worker / doula liaison</option>
+            <option>Logistics and driver</option>
+            <option>Data and administration</option>
+          </select></div>
+        <div><label>Hours per month you can give</label><input id="hours_per_month" type="number" min="1" max="200"></div>
+      </div>
+      <div class="row">
+        <div><label>License type (clinicians only)</label><input id="license_type" placeholder="e.g., RN, CNM, MD"></div>
+        <div><label>License number (clinicians only)</label><input id="license_number"></div>
+      </div>
+      <button class="btn" id="btnSaveProfile">Save profile</button>
+      <div class="msg" id="profileMsg"></div>
+    </div>
+
+    <div class="card">
+      <h2>Training completions</h2>
+      <table id="compTable"><thead><tr><th>Module</th><th>Completed</th><th>Format</th><th>Signed</th></tr></thead><tbody></tbody></table>
+      <h2 style="margin-top:22px;font-size:17px">Record a completion</h2>
+      <div class="row">
+        <div><label>Module</label>
+          <select id="module">
+            <option value="1">Module 1 — Volunteer Orientation</option>
+            <option value="2">Module 2 — Clinical Volunteers</option>
+            <option value="3">Module 3 — Site Operations and Safety</option>
+            <option value="4">Module 4 — Train-the-Trainer</option>
+          </select></div>
+        <div><label>Date completed</label><input id="completed_on" type="date"></div>
+      </div>
+      <div class="row">
+        <div><label>Format</label><select id="format"><option>Video conference</option><option>In person</option></select></div>
+        <div><label>Approximate minutes</label><input id="minutes" type="number" min="15" max="600" value="90"></div>
+      </div>
+      <label>Type your full legal name as your electronic signature</label><input id="signature_name">
+      <div class="chk"><input type="checkbox" id="attested"><span class="small">I attended and completed this module facilitated by the Charitable Mobile Clinic, completed the knowledge check, and understand that I must complete Module 3 (and Module 2 if I am a licensed clinician) before serving at a clinic day. I declare that the foregoing is true and correct.</span></div>
+      <button class="btn" id="btnSaveComp">Sign and record</button>
+      <div class="msg" id="compMsg"></div>
+    </div>
+  </section>
+</div></main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const SUPABASE_URL = 'https://aimxigsuimzgislhbnyv.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_l7fS8pmG9CcGpwfCdjA87Q_DHvI5gh_';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const $ = id => document.getElementById(id);
+const show = (id, text, ok) => { const m=$(id); m.textContent=text; m.className='msg '+(ok?'ok':'err'); };
+let user = null;
+
+async function refresh(){
+  const { data:{ session } } = await sb.auth.getSession();
+  user = session?.user || null;
+  $('auth').hidden = !!user; $('app').hidden = !user; $('signout').hidden = !user;
+  if(!user) return;
+  const { data: prof } = await sb.from('profiles').select('*').eq('id', user.id).maybeSingle();
+  if(prof){ for(const k of ['full_name','phone','role','hours_per_month','license_type','license_number']) if(prof[k]!=null) $(k).value = prof[k]; }
+  const { data: adm } = await sb.from('admins').select('email').limit(1);
+  $('adminLink').hidden = !(adm && adm.length);
+  await loadCompletions();
+}
+async function loadCompletions(){
+  const { data } = await sb.from('module_completions').select('*').eq('user_id', user.id).order('module');
+  const tb = $('compTable').querySelector('tbody'); tb.innerHTML='';
+  (data||[]).forEach(r=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>Module ${r.module}</td><td>${r.completed_on}</td><td>${r.format||''}</td><td>${r.signature_name}</td>`; tb.appendChild(tr); });
+  if(!(data||[]).length){ tb.innerHTML='<tr><td colspan="4" class="small">No completions recorded yet.</td></tr>'; }
+}
+$('btnSignIn').onclick = async ()=>{ const { error } = await sb.auth.signInWithPassword({ email:$('email').value.trim(), password:$('password').value }); error? show('authMsg', error.message, false) : refresh(); };
+$('btnSignUp').onclick = async ()=>{ const { error } = await sb.auth.signUp({ email:$('email').value.trim(), password:$('password').value, options:{ emailRedirectTo: location.href } }); show('authMsg', error? error.message : 'Check your email for a confirmation link, then sign in.', !error); };
+$('btnMagic').onclick = async ()=>{ const { error } = await sb.auth.signInWithOtp({ email:$('email').value.trim(), options:{ emailRedirectTo: location.href } }); show('authMsg', error? error.message : 'Sign-in link sent. Check your email.', !error); };
+$('signout').onclick = async e=>{ e.preventDefault(); await sb.auth.signOut(); refresh(); };
+$('btnSaveProfile').onclick = async ()=>{
+  const row = { id:user.id, email:user.email, full_name:$('full_name').value.trim(), phone:$('phone').value.trim(), role:$('role').value, hours_per_month: $('hours_per_month').value? +$('hours_per_month').value : null, license_type:$('license_type').value.trim()||null, license_number:$('license_number').value.trim()||null };
+  if(!row.full_name || !row.role) return show('profileMsg','Name and role are required.',false);
+  const { error } = await sb.from('profiles').upsert(row); show('profileMsg', error? error.message : 'Profile saved.', !error);
+};
+$('btnSaveComp').onclick = async ()=>{
+  if(!$('attested').checked) return show('compMsg','Please check the attestation box.',false);
+  if(!$('completed_on').value || !$('signature_name').value.trim()) return show('compMsg','Date and signature name are required.',false);
+  const row = { user_id:user.id, module:+$('module').value, completed_on:$('completed_on').value, format:$('format').value, minutes:+$('minutes').value||null, signature_name:$('signature_name').value.trim(), attested:true };
+  const { error } = await sb.from('module_completions').upsert(row, { onConflict:'user_id,module' });
+  show('compMsg', error? error.message : 'Completion recorded. Thank you.', !error); if(!error) loadCompletions();
+};
+sb.auth.onAuthStateChange(()=>refresh());
+refresh();
+</script>
+</body>
+</html>

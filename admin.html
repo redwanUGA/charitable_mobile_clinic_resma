@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin — Charitable Mobile Clinic</title>
+<meta name="robots" content="noindex">
+<style>
+  :root{--teal:#028090;--deep:#0B4F5E;--mint:#E6F4F1;--ink:#1F2A2E;--muted:#5C6B70;--acc:#F28C28}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Calibri,"Segoe UI",Arial,sans-serif;color:var(--ink);background:var(--mint);line-height:1.5}
+  header{background:var(--deep);color:#fff;padding:14px 20px}
+  .wrap{max-width:1100px;margin:0 auto}
+  nav{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between}
+  nav .brand{font-family:Cambria,Georgia,serif;font-size:20px;font-weight:700}
+  nav a{color:#CFE9E4;text-decoration:none;font-size:14px}
+  main{padding:32px 20px}
+  h1{font-family:Cambria,Georgia,serif;color:var(--deep);font-size:28px;margin:0 0 6px}
+  .card{background:#fff;border-radius:10px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.06);margin-bottom:18px}
+  input,select{padding:9px;border:1px solid #c9d8d5;border-radius:8px;font:inherit;font-size:15px}
+  .btn{display:inline-block;background:var(--acc);color:#fff;padding:9px 16px;border-radius:8px;border:0;font-weight:700;font:inherit;cursor:pointer;margin-right:8px}
+  .btn.alt{background:var(--teal)}
+  .msg{padding:10px 12px;border-radius:8px;font-size:14px;margin-top:12px;display:none}
+  .msg.err{display:block;background:#fdeaea;color:#8a1c1c}
+  .small{font-size:13px;color:var(--muted)}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+  .stat{background:#fff;border-radius:10px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+  .stat b{display:block;font-family:Cambria,Georgia,serif;font-size:30px;color:var(--teal)}
+  .tbl{overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{padding:8px;text-align:left;border-bottom:1px solid #e3ecea;vertical-align:top;white-space:nowrap}
+  th{background:#d9e2f3;color:var(--deep)}
+  td select{padding:4px}
+  .ok{color:#155c31;font-weight:700}
+  [hidden]{display:none!important}
+</style>
+</head>
+<body>
+<header><div class="wrap"><nav>
+  <div class="brand">Charitable Mobile Clinic — Admin</div>
+  <div><a href="index.html">Home</a> &nbsp; <a href="volunteer.html">Volunteer portal</a> &nbsp; <a href="#" id="signout" hidden>Sign out</a></div>
+</nav></div></header>
+
+<main><div class="wrap">
+  <h1>Volunteer roster</h1>
+  <section id="auth" class="card">
+    <p class="small">Administrators only. Sign in with your admin email.</p>
+    <input id="email" type="email" placeholder="Email" style="width:260px"> <input id="password" type="password" placeholder="Password" style="width:200px">
+    <button class="btn" id="btnSignIn">Sign in</button> <button class="btn alt" id="btnMagic">Email me a link</button>
+    <div class="msg" id="authMsg"></div>
+  </section>
+
+  <section id="app" hidden>
+    <div class="stats">
+      <div class="stat"><b id="sTotal">–</b>Registered volunteers</div>
+      <div class="stat"><b id="sClin">–</b>Licensed clinicians</div>
+      <div class="stat"><b id="sM1">–</b>Completed Module 1</div>
+      <div class="stat"><b id="sHours">–</b>Pledged hours / month</div>
+    </div>
+    <div class="card">
+      <input id="q" placeholder="Search name, email, role…" style="width:300px"> <button class="btn alt" id="btnCsv">Download CSV</button> <button class="btn alt" id="btnReload">Refresh</button>
+      <div class="tbl" style="margin-top:14px"><table id="tbl"><thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Role</th><th>License</th><th>Hrs/mo</th><th>M1</th><th>M2</th><th>M3</th><th>M4</th><th>Status</th><th>Registered</th></tr></thead><tbody></tbody></table></div>
+      <div class="msg" id="msg"></div>
+      <p class="small">Status changes save immediately. Completion dates are self-attested by the volunteer with a typed e-signature; the attendance screenshot and facilitator countersignature remain in the paper/PDF file.</p>
+    </div>
+  </section>
+</div></main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+const sb = supabase.createClient('https://aimxigsuimzgislhbnyv.supabase.co','sb_publishable_l7fS8pmG9CcGpwfCdjA87Q_DHvI5gh_');
+const $ = id => document.getElementById(id);
+const STATUSES = ['applied','orientation complete','cleared to serve','inactive'];
+let rows = [];
+const esc = s => String(s??'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function refresh(){
+  const { data:{ session } } = await sb.auth.getSession();
+  const user = session?.user;
+  $('signout').hidden = !user;
+  if(!user){ $('auth').hidden=false; $('app').hidden=true; return; }
+  const { data: adm } = await sb.from('admins').select('email').limit(1);
+  if(!adm || !adm.length){ $('authMsg').textContent='This account is not an administrator.'; $('authMsg').className='msg err'; await sb.auth.signOut(); return; }
+  $('auth').hidden=true; $('app').hidden=false; await load();
+}
+async function load(){
+  const { data, error } = await sb.from('volunteer_roster').select('*').order('created_at',{ascending:false});
+  if(error){ $('msg').textContent=error.message; $('msg').className='msg err'; return; }
+  rows = data||[]; render();
+}
+function render(){
+  const q = $('q').value.toLowerCase();
+  const tb = $('tbl').querySelector('tbody'); tb.innerHTML='';
+  const vis = rows.filter(r => !q || [r.full_name,r.email,r.role,r.license_type].join(' ').toLowerCase().includes(q));
+  for(const r of vis){
+    const tr=document.createElement('tr');
+    const m = k => r[k] ? `<span class="ok">${r[k]}</span>` : '—';
+    tr.innerHTML = `<td>${esc(r.full_name)}</td><td>${esc(r.email)}</td><td>${esc(r.phone)}</td><td>${esc(r.role)}</td><td>${esc([r.license_type,r.license_number].filter(Boolean).join(' '))}</td><td>${r.hours_per_month??''}</td><td>${m('module1')}</td><td>${m('module2')}</td><td>${m('module3')}</td><td>${m('module4')}</td><td><select data-id="${r.id}">${STATUSES.map(s=>`<option ${s===r.status?'selected':''}>${s}</option>`).join('')}</select></td><td>${(r.created_at||'').slice(0,10)}</td>`;
+    tb.appendChild(tr);
+  }
+  tb.querySelectorAll('select').forEach(sel => sel.onchange = async () => { const { error } = await sb.from('profiles').update({status: sel.value}).eq('id', sel.dataset.id); if(error){ $('msg').textContent=error.message; $('msg').className='msg err'; } });
+  $('sTotal').textContent = rows.length;
+  $('sClin').textContent = rows.filter(r => /clinician/i.test(r.role||'')).length;
+  $('sM1').textContent = rows.filter(r => r.module1).length;
+  $('sHours').textContent = rows.reduce((a,r)=>a+(+r.hours_per_month||0),0);
+}
+$('q').oninput = render;
+$('btnReload').onclick = load;
+$('btnCsv').onclick = () => {
+  const cols = ['full_name','email','phone','role','license_type','license_number','hours_per_month','module1','module2','module3','module4','status','created_at'];
+  const csv = [cols.join(',')].concat(rows.map(r => cols.map(c => `"${String(r[c]??'').replace(/"/g,'""')}"`).join(','))).join('\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download = `cmc-volunteers-${new Date().toISOString().slice(0,10)}.csv`; a.click();
+};
+$('btnSignIn').onclick = async ()=>{ const { error } = await sb.auth.signInWithPassword({ email:$('email').value.trim(), password:$('password').value }); if(error){ $('authMsg').textContent=error.message; $('authMsg').className='msg err'; } else refresh(); };
+$('btnMagic').onclick = async ()=>{ const { error } = await sb.auth.signInWithOtp({ email:$('email').value.trim(), options:{ emailRedirectTo: location.href } }); $('authMsg').textContent = error? error.message : 'Sign-in link sent. Check your email.'; $('authMsg').className='msg err'; };
+$('signout').onclick = async e=>{ e.preventDefault(); await sb.auth.signOut(); refresh(); };
+sb.auth.onAuthStateChange(()=>refresh());
+refresh();
+</script>
+</body>
+</html>
